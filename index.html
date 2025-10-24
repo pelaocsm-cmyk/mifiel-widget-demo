@@ -3,29 +3,99 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Demo Firma — Widget (Sandbox)</title>
+  <title>Demo • Widget de firma (Sandbox)</title>
+  <!-- CDN del componente (SANDBOX). Para producción usa https://app.mifiel.com/widget-component/index.js -->
+  <script src="https://app-sandbox.mifiel.com/widget-component/index.js"></script>
   <style>
     :root { color-scheme: light dark; }
-    body {font-family: system-ui, -apple-system, Segoe UI, Roboto; margin:0; padding:24px; background:#0b1220; color:#fff;}
-    .wrap{max-width:480px; margin:10vh auto; background:#111827; border-radius:18px; padding:28px; box-shadow:0 10px 30px rgba(0,0,0,.35);}
-    h1{font-size:1.25rem; margin:0 0 6px}
-    p{opacity:.85; margin:0 0 12px}
-    a.btn{display:block; background:#22c55e; color:#06121e; text-align:center; padding:14px 16px; border-radius:12px; text-decoration:none; font-weight:700}
-    a.btn:hover{background:#16a34a}
-    .note{font-size:.85rem; opacity:.8; margin-top:12px}
-    footer{margin-top:18px; font-size:.8rem; opacity:.7}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto; background:#0b1220; color:#fff}
+    header{padding:28px 20px 10px; text-align:center}
+    h1{font-size:1.25rem;margin:0}
+    p.sub{opacity:.8; margin:.25rem 0 1rem}
+    .wrap{max-width:980px;margin:0 auto;padding:16px}
+    .card{background:#111827;border-radius:18px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    .row{display:grid;grid-template-columns:1fr;gap:14px}
+    @media(min-width:900px){.row{grid-template-columns:320px 1fr}}
+    .panel{background:#0f172a;border-radius:14px;padding:16px}
+    label{display:block;font-size:.9rem;opacity:.9;margin-bottom:6px}
+    input,select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #263148;background:#0b1324;color:#fff}
+    small.note{display:block; opacity:.75; margin-top:8px}
+    .muted{opacity:.8}
+    .footer{margin:16px 0 28px; text-align:center; opacity:.75; font-size:.85rem}
+    .widget-container{height:70vh; min-height:520px; background:#0a1020; border-radius:14px; overflow:hidden}
   </style>
 </head>
 <body>
-  <main class="wrap">
-    <h1>Firma de prueba (Widget)</h1>
-    <p>Este botón abre el flujo de firma en una pestaña nueva.</p>
+  <header>
+    <h1>Widget de Firma — Sandbox</h1>
+    <p class="sub">Tenaris–PEMEX PoC · Mifiel</p>
+  </header>
 
-    <!-- 🔗 Pega aquí el ENLACE DE FIRMA del firmante (SANDBOX) -->
-    <a class="btn" href="https://app-sandbox.mifiel.com/sign/kn4PBSwMk1" target="_blank" rel="noopener">Firmar ahora</a>
+  <main class="wrap card">
+    <section class="row">
+      <div class="panel">
+        <label for="wid">Widget ID del firmante</label>
+        <!-- 🔐 Pega aquí el widgetId que recibes al crear el documento (para este firmante) -->
+        <input id="wid" placeholder="ej. 5f9a2c47-..." />
 
-    <p class="note">Sandbox · Documento de prueba · Sin datos reales</p>
-    <footer>Tenaris–PEMEX PoC · Mifiel</footer>
+        <label for="env" style="margin-top:10px">Entorno</label>
+        <select id="env">
+          <option value="sandbox" selected>Sandbox</option>
+          <option value="production">Producción</option>
+        </select>
+        <small class="note">El <strong>widgetId</strong> identifica al firmante/revisor. No es necesario que el participante tenga cuenta en Mifiel.</small>
+      </div>
+
+      <div class="panel">
+        <!--
+          Componente del widget. Por defecto dejamos vacío el atributo id; el script lo rellenará con lo que escribas arriba.
+          Puedes personalizar textos y hooks de éxito/error aquí mismo.
+        -->
+        <mifiel-widget
+          id=""
+          environment="sandbox"
+          success-btn-text="Ver resumen"
+          success-btn-action="#"
+          error-btn-action="#"
+          container-class="widget-container"
+        ></mifiel-widget>
+      </div>
+    </section>
+
+    <p class="footer">Sandbox · Documento de prueba · Sin datos reales</p>
   </main>
+
+  <script>
+    // --- Personaliza manejo de eventos ---
+    function onSuccessHandler (ev) {
+      console.log('[Mifiel] Documento firmado', ev?.detail);
+      alert('¡Listo! Documento firmado en sandbox.');
+    }
+    function onErrorHandler (err) {
+      console.error('[Mifiel] Error de firma', err);
+      alert('Hubo un error durante la firma. Revisa consola para más detalle.');
+    }
+
+    // --- Conecta los eventos del componente ---
+    document.addEventListener('DOMContentLoaded', () => {
+      const widget = document.querySelector('mifiel-widget');
+      widget.addEventListener('signSuccess', onSuccessHandler);
+      widget.addEventListener('signError', onErrorHandler);
+
+      // Permite pegar el widgetId manualmente en la UI
+      const input = document.getElementById('wid');
+      const envSel = document.getElementById('env');
+      function apply() {
+        widget.setAttribute('id', input.value.trim());
+        widget.setAttribute('environment', envSel.value);
+      }
+      input.addEventListener('change', apply);
+      input.addEventListener('keyup', (e)=>{ if(e.key==='Enter') apply(); });
+      envSel.addEventListener('change', apply);
+
+      // Si quieres precargar un widgetId fijo, descomenta y pega el valor:
+      // input.value = 'WIDGET_ID_AQUI'; apply();
+    });
+  </script>
 </body>
 </html>
