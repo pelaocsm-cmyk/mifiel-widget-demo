@@ -3,117 +3,62 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tenaris–PEMEX PoC • Widget de firma (Sandbox)</title>
-  <!-- CDN del componente en SANDBOX -->
-  <script src="https://app-sandbox.mifiel.com/widget-component/index.js"></script>
+  <title>Tenaris Portal — Demo (Sandbox)</title>
   <style>
-    :root { color-scheme: light dark; }
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto;background:#0b1220;color:#fff}
-    header{padding:24px 20px 8px;text-align:center}
-    h1{font-size:1.25rem;margin:0}
-    p.sub{opacity:.8;margin:.25rem 0 1rem}
-    .layout{max-width:1100px;margin:0 auto;padding:16px;display:grid;gap:16px}
-    @media(min-width:900px){.layout{grid-template-columns:320px 1fr}}
-    .panel{background:#0f172a;border-radius:14px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
-    .widget-wrap{background:#0a1020;border-radius:14px;overflow:hidden;min-height:560px;height:72vh}
-    .btn{display:block;width:100%;text-align:left;background:#111827;border:1px solid #1f2a44;border-radius:12px;color:#fff;padding:12px 14px;margin:0 0 10px;text-decoration:none;cursor:pointer}
-    .btn strong{display:block}
-    .btn small{opacity:.8}
-    .btn:hover{background:#17233b}
-    .badge{display:inline-block;background:#1f2937;border:1px solid #2f3a52;border-radius:999px;padding:2px 8px;font-size:.75rem;margin-left:6px;opacity:.9}
-    .row{display:grid;grid-template-columns:1fr;gap:10px;margin-top:10px}
-    .muted{opacity:.75}
-    .footer{text-align:center;opacity:.75;font-size:.85rem;margin:12px 0 22px}
+    main{max-width:720px;margin:10vh auto;padding:24px;background:#0f172a;border-radius:16px}
+    h1{font-size:1.25rem;margin:0 0 8px}
+    p{opacity:.85}
+    label{display:block;margin:14px 0 6px}
+    input,select,button{font:inherit}
     input,select{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #263148;background:#0b1324;color:#fff}
-    .actions{display:flex;gap:8px;margin-top:8px}
-    .pill{padding:10px 12px;border-radius:10px;background:#22c55e;color:#06121e;font-weight:700;text-decoration:none;border:none;cursor:pointer}
-    .pill.secondary{background:#334155;color:#e5e7eb}
+    .row{display:flex;gap:10px;margin-top:12px}
+    button{padding:10px 14px;border-radius:10px;border:none;cursor:pointer}
+    .primary{background:#22c55e;color:#06121e;font-weight:700}
+    .ghost{background:#1f2a44;color:#e5e7eb;border:1px solid #2b3a54}
+    small{opacity:.7}
   </style>
 </head>
 <body>
-  <header>
-    <h1>Widget de firma — Sandbox</h1>
-    <p class="sub">Tenaris–PEMEX PoC · Mifiel</p>
-  </header>
-  <main class="layout">
-    <aside class="panel">
-      <p class="muted">Selecciona a tu usuario o pega un <code>widgetId</code> para cargar el documento en el widget.</p>
-      <button class="btn" data-id="XqZZ7X9jGb"><strong>Lucía</strong><small>  • Signer #246204</small><span class="badge">sandbox</span></button>
-      <button class="btn" data-id="dZSuprw89v"><strong>Ezequiel</strong><small>  • Signer #246203</small><span class="badge">sandbox</span></button>
-      <button class="btn" data-id="kn4PBSwMk1"><strong>Emily</strong><small>  • Signer #246181</small><span class="badge">sandbox</span></button>
+  <main>
+    <h1>Portal Tenaris (Demo)</h1>
+    <p>Simulamos el login. Tras “Entrar”, redirigimos a la pantalla de firma con el <code>widgetId</code>.</p>
 
-      <div class="row">
-        <label for="wid">o pega manualmente un <strong>widgetId</strong>:</label>
-        <input id="wid" placeholder="ej. XqZZ7X9jGb" />
-        <div class="actions">
-          <button id="apply" class="pill">Cargar en el widget</button>
-          <button id="copyLink" class="pill secondary" title="Copia un link con parámetros para compartir">Copiar link</button>
-        </div>
-        <small class="muted">Nota: cada <em>widgetId</em> identifica a un firmante/revisor del mismo documento. No requieren cuenta en Mifiel.</small>
-      </div>
-    </aside>
+    <label for="email">Correo corporativo</label>
+    <input id="email" placeholder="usuario@tenaris.com" />
 
-    <section class="panel">
-      <div class="widget-wrap">
-        <mifiel-widget id="" environment="sandbox" success-btn-text="Ver resumen" success-btn-action="#" error-btn-action="#" container-class="widget-wrap"></mifiel-widget>
-      </div>
-      <p class="muted" id="status">Listo para cargar un firmante…</p>
-    </section>
+    <label for="wid">widgetId del firmante</label>
+    <input id="wid" placeholder="ej. XqZZ7X9jGb" />
+
+    <label for="env">Entorno</label>
+    <select id="env">
+      <option value="sandbox" selected>Sandbox</option>
+      <option value="production">Producción</option>
+    </select>
+
+    <div class="row">
+      <button class="primary" id="go">Entrar</button>
+      <button class="ghost" id="demo">Rellenar demo (Lucía)</button>
+    </div>
+    <small>En producción este paso lo hace el SSO y tu backend — aquí solo generamos el deep-link.</small>
   </main>
-  <p class="footer">Sandbox · Documento de prueba · Sin datos reales</p>
 
   <script>
-    // Utilidad: parámetros de URL
-    const params = new URLSearchParams(location.search);
-    function setParam(k,v){ if(!v){ params.delete(k); } else { params.set(k,v); } history.replaceState({}, '', `${location.pathname}?${params.toString()}`); }
+    const email = document.getElementById('email');
+    const wid   = document.getElementById('wid');
+    const env   = document.getElementById('env');
 
-    const widget = document.querySelector('mifiel-widget');
-    const status = document.getElementById('status');
+    document.getElementById('demo').onclick = () => {
+      email.value = 'lucia@tenaris.com';
+      wid.value   = 'XqZZ7X9jGb'; // tu ID demo
+    };
 
-    function load(id){
-      if(!id) return;
-      widget.setAttribute('id', id);
-      status.textContent = `Firmante cargado: ${id}`;
-      setParam('id', id); // deja el id en la URL para compartir
-      setParam('env', 'sandbox');
-    }
-
-    // Botones preconfigurados
-    document.querySelectorAll('.btn[data-id]').forEach(btn=>{
-      btn.addEventListener('click', ()=> load(btn.dataset.id));
-    });
-
-    // Entrada manual
-    document.getElementById('apply').addEventListener('click', ()=>{
-      const id = document.getElementById('wid').value.trim();
-      load(id);
-    });
-
-    // Copiar link con parámetros
-    document.getElementById('copyLink').addEventListener('click', async ()=>{
-      const id = (document.getElementById('wid').value || widget.getAttribute('id') || '').trim();
-      if(!id){ alert('Primero selecciona o pega un widgetId.'); return; }
-      const url = `${location.origin}${location.pathname}?id=${encodeURIComponent(id)}&env=sandbox`;
-      await navigator.clipboard.writeText(url);
-      alert('Link copiado al portapapeles');
-    });
-
-    // Deep link vía URL (?id=...)
-    const urlId = params.get('id');
-    if(urlId) {
-      document.getElementById('wid').value = urlId;
-      load(urlId);
-    }
-
-    // Eventos del widget
-    widget.addEventListener('signSuccess', (ev)=>{
-      console.log('[Mifiel] Documento firmado', ev?.detail);
-      alert('¡Listo! Documento firmado en sandbox.');
-    });
-    widget.addEventListener('signError', (err)=>{
-      console.error('[Mifiel] Error de firma', err);
-      alert('Hubo un error durante la firma. Revisa consola para más detalle.');
-    });
+    document.getElementById('go').onclick = () => {
+      const id = wid.value.trim();
+      if(!email.value || !id){ alert('Completa correo y widgetId'); return; }
+      // Deep-link a la pantalla de firma
+      location.href = `sign.html?id=${encodeURIComponent(id)}&env=${encodeURIComponent(env.value)}`;
+    };
   </script>
 </body>
 </html>
