@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tenaris — Firma (Sandbox)</title>
+  <!-- SANDBOX: cambia a https://app.mifiel.com/widget-component/index.js en producción -->
+  <script src="https://app-sandbox.mifiel.com/widget-component/index.js" defer crossorigin="anonymous"></script>
+  <style>
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto;background:#0b1220;color:#fff}
+    header{padding:20px 16px;text-align:center}
+    h1{font-size:1.25rem;margin:0}
+    main{max-width:1100px;margin:0 auto;padding:16px}
+    .card{background:#0f172a;border-radius:14px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    .viewport{position:relative;background:#0a1020;border-radius:14px;min-height:560px;height:72vh;overflow:hidden}
+    mifiel-widget{display:block;width:100%;height:72vh;min-height:560px}
+    .row{display:flex;gap:10px;margin-top:12px}
+    .btn{padding:10px 12px;border-radius:10px;border:1px solid #2b3a54;background:#1f2744;color:#fff;cursor:pointer;text-decoration:none}
+    .btn.primary{background:#22c55e;color:#06121e;border:none;font-weight:700}
+    .muted{opacity:.8}
+    .loading{position:absolute;inset:0;display:grid;place-items:center;background:rgba(2,6,23,.35);backdrop-filter:blur(2px);font-weight:600;letter-spacing:.2px}
+    pre{white-space:pre-wrap;background:#0b1324;border:1px solid #27324a;padding:10px;border-radius:10px;max-height:250px;overflow:auto}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Firma de documento — Tenaris</h1>
+    <p class="muted">Vista móvil/desktop • e.firma (.cer/.key/contraseña) • Al final: PDF con QR + XML</p>
+  </header>
+
+  <main class="card">
+    <div id="vp" class="viewport">
+      <div id="ld" class="loading">Cargando documento…</div>
+      <!-- aquí se monta el widget -->
+    </div>
+    <p class="muted" id="status">Preparando widget…</p>
+    <div id="result"></div>
+  </main>
+
+  <script>
+    const q = new URLSearchParams(location.search);
+    const id  = q.get('id');                // widgetId del firmante
+    const env = q.get('env') || 'sandbox';  // sandbox|production
+    const vp  = document.getElementById('vp');
+    const ld  = document.getElementById('ld');
+    const status = document.getElementById('status');
+    const result = document.getElementById('result');
+
+    if(!id){ alert('Falta widgetId (?id=...)'); }
+
+    function hideLoader(){ ld && (ld.style.display='none'); }
+
+    // Espera a que se defina el custom element y móntalo
+    (async function mount(){
+      if(window.customElements && customElements.whenDefined){
+        try { await customElements.whenDefined('mifiel-widget'); } catch(_) {}
+      }
+      // Reemplaza contenido y crea el widget “from scratch”
+      vp.querySelectorAll('mifiel-widget').forEach(n=>n.remove());
+      const el = document.createElement('mifiel-widget');
+      el.setAttribute('id', id);
+      el.setAttribute('environment', env);
+      vp.appendChild(el);
+      status.textContent = `Firmante cargado: ${id} (${env})`;
+      // Eventos
+      el.addEventListener('signSuccess', (ev)=>{
+        hideLoader();
+        const payload = ev?.detail || {};
+        const pretty  = JSON.stringify(payload, null, 2);
+        // Si tienes URLs reales al PDF/XML, colócalas aquí:
+        const pdfUrl = '#'; // << reemplaza si tu backend expone link
+        const xmlUrl = '#'; // << reemplaza si tu backend expone link
+        result.innerHTML = `
+          <div class="row">
+            <a class="btn primary" href="${pdfUrl}" onclick="if(this.getAttribute('href')==='#'){alert('Conecta aquí la URL del PDF firmado con QR');return false;}" target="_blank" rel="noopener">Descargar PDF con QR</a>
+            <a class="btn" href="${xmlUrl}" onclick="if(this.getAttribute('href')==='#'){alert('Conecta aquí la URL del XML/verificador');return false;}" target="_blank" rel="noopener">Ver XML / Verificador</a>
+          </div>
+          <details style="margin-top:12px"><summary class="muted">Ver payload del evento</summary>
+            <pre>${pretty}</pre>
+          </details>
+        `;
+      });
+      el.addEventListener('signError', (err)=>{
+        hideLoader();
+        result.innerHTML = `<p class="muted">Ocurrió un error durante la firma. Reintenta o contacta soporte.</p><pre>${(err && err.message) ? err.message : (err || '')}</pre>`;
+      });
+
+      // Fallback para ocultar loader si el widget no emite eventos rápido
+      setTimeout(hideLoader, 2500);
+    })();
+  </script>
+</body>
+</html>
