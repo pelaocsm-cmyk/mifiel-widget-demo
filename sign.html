@@ -4,9 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Tenaris — Firma (Sandbox)</title>
-  <!-- SANDBOX: cambia a https://app.mifiel.com/widget-component/index.js en producción -->
+  <!-- SANDBOX: para producción cambia a https://app.mifiel.com/widget-component/index.js -->
   <script src="https://app-sandbox.mifiel.com/widget-component/index.js" defer crossorigin="anonymous"></script>
   <style>
+    :root{color-scheme:light dark}
+    *{box-sizing:border-box}
     body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto;background:#0b1220;color:#fff}
     header{padding:20px 16px;text-align:center}
     h1{font-size:1.25rem;margin:0}
@@ -31,63 +33,83 @@
   <main class="card">
     <div id="vp" class="viewport">
       <div id="ld" class="loading">Cargando documento…</div>
-      <!-- aquí se monta el widget -->
+      <!-- aquí se montará el widget -->
     </div>
     <p class="muted" id="status">Preparando widget…</p>
     <div id="result"></div>
   </main>
 
   <script>
-    const q = new URLSearchParams(location.search);
-    const id  = q.get('id');                // widgetId del firmante
-    const env = q.get('env') || 'sandbox';  // sandbox|production
-    const vp  = document.getElementById('vp');
-    const ld  = document.getElementById('ld');
+    // --- Parámetros y defaults ---
+    const DEFAULT_ID  = 'kn4PBSwMk1';        // <- tu widgetId de sandbox
+    const DEFAULT_ENV = 'sandbox';            // sandbox | production
+
+    const q      = new URLSearchParams(location.search);
+    const id     = q.get('id')  || DEFAULT_ID;
+    const env    = q.get('env') || DEFAULT_ENV;
+
+    const vp     = document.getElementById('vp');
+    const ld     = document.getElementById('ld');
     const status = document.getElementById('status');
     const result = document.getElementById('result');
 
-    if(!id){ alert('Falta widgetId (?id=...)'); }
+    function hideLoader(){ if(ld) ld.style.display = 'none'; }
 
-    function hideLoader(){ ld && (ld.style.display='none'); }
+    // Monta el widget (crea un elemento nuevo cada vez)
+    async function mount(){
+      if(!id){ alert('Falta widgetId (?id=...)'); return; }
 
-    // Espera a que se defina el custom element y móntalo
-    (async function mount(){
-      if(window.customElements && customElements.whenDefined){
-        try { await customElements.whenDefined('mifiel-widget'); } catch(_) {}
+      // Espera a que el custom element exista
+      if (window.customElements?.whenDefined) {
+        try { await customElements.whenDefined('mifiel-widget'); } catch {}
       }
-      // Reemplaza contenido y crea el widget “from scratch”
-      vp.querySelectorAll('mifiel-widget').forEach(n=>n.remove());
-      const el = document.createElement('mifiel-widget');
-      el.setAttribute('id', id);
-      el.setAttribute('environment', env);
-      vp.appendChild(el);
-      status.textContent = `Firmante cargado: ${id} (${env})`;
-      // Eventos
-      el.addEventListener('signSuccess', (ev)=>{
+
+      // Limpia widgets anteriores
+      vp.querySelectorAll('mifiel-widget').forEach(n => n.remove());
+
+      // Crea componente mínimo (id + environment)
+      const widget = document.createElement('mifiel-widget');
+      widget.setAttribute('id', id);
+      widget.setAttribute('environment', env);
+
+      // Eventos del widget
+      widget.addEventListener('signSuccess', (ev) => {
         hideLoader();
         const payload = ev?.detail || {};
         const pretty  = JSON.stringify(payload, null, 2);
-        // Si tienes URLs reales al PDF/XML, colócalas aquí:
-        const pdfUrl = '#'; // << reemplaza si tu backend expone link
-        const xmlUrl = '#'; // << reemplaza si tu backend expone link
+
+        // Enlaces: conecta a tus URLs si las tienes; si no, quedan como placeholders
+        const pdfUrl = '#'; // <- reemplaza por URL al PDF firmado (con QR) si tu backend la expone
+        const xmlUrl = '#'; // <- reemplaza por URL al XML/verificador
+
         result.innerHTML = `
-          <div class="row">
-            <a class="btn primary" href="${pdfUrl}" onclick="if(this.getAttribute('href')==='#'){alert('Conecta aquí la URL del PDF firmado con QR');return false;}" target="_blank" rel="noopener">Descargar PDF con QR</a>
-            <a class="btn" href="${xmlUrl}" onclick="if(this.getAttribute('href')==='#'){alert('Conecta aquí la URL del XML/verificador');return false;}" target="_blank" rel="noopener">Ver XML / Verificador</a>
+          <div class="row" style="margin-top:12px">
+            <a class="btn primary" href="${pdfUrl}" onclick="if(this.href.endsWith('#')){alert('Conecta aquí la URL del PDF firmado con QR');return false;}" target="_blank" rel="noopener">Descargar PDF con QR</a>
+            <a class="btn" href="${xmlUrl}" onclick="if(this.href.endsWith('#')){alert('Conecta aquí la URL del XML/verificador');return false;}" target="_blank" rel="noopener">Ver XML / Verificador</a>
           </div>
-          <details style="margin-top:12px"><summary class="muted">Ver payload del evento</summary>
+          <details style="margin-top:12px"><summary class="muted">Payload del evento</summary>
             <pre>${pretty}</pre>
           </details>
         `;
-      });
-      el.addEventListener('signError', (err)=>{
-        hideLoader();
-        result.innerHTML = `<p class="muted">Ocurrió un error durante la firma. Reintenta o contacta soporte.</p><pre>${(err && err.message) ? err.message : (err || '')}</pre>`;
+        status.textContent = '¡Firma completada!';
       });
 
-      // Fallback para ocultar loader si el widget no emite eventos rápido
+      widget.addEventListener('signError', (err) => {
+        hideLoader();
+        status.textContent = 'Error durante la firma';
+        result.innerHTML = `<pre>${(err && err.message) ? err.message : (err || '')}</pre>`;
+        console.error('[Mifiel] signError', err);
+      });
+
+      // Monta y actualiza estado
+      vp.appendChild(widget);
+      status.textContent = `Firmante cargado: ${id} (${env})`;
+
+      // Fallback para ocultar el loader si el componente tarda en emitir eventos
       setTimeout(hideLoader, 2500);
-    })();
+    }
+
+    mount();
   </script>
 </body>
 </html>
